@@ -8,11 +8,13 @@ dotenv.config()
 
 const app = express()
 
-app.use(express.json());
+app.use(express.json()); // allows us to accept JSON data in the req.body
+
+const PORT = process.env.PORT || 5000;
 
 app.use("/api/users",userRoutes);
 
-app.listen(5000, () => {
-    connectDB();
-    console.log('Servidor abierto en puerto 5000')
+app.listen(PORT, () => {
+    connectDB()
+    console.log('Servidor abierto en puerto ' + PORT)
 });
