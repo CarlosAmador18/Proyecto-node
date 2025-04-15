@@ -59,7 +59,7 @@ export const loginUser = async (req, res) => {
     }
 }
 
-export const logoutUser = (req,res) => {
+export const logoutUser = (res) => {
     res.cookie('token',"", {
         expires: new Date(0)
     })
