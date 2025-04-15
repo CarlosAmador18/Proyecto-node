@@ -14,10 +14,8 @@ export const registerUser = async (req, res) => {
           message: ["The email is already in use"],
         });
   
-      // hashing the password
       const passwordHash = await bcrypt.hash(password, 10);
   
-      // creating the user
       const newUser = new User({
         username,
         email,
@@ -30,11 +28,7 @@ export const registerUser = async (req, res) => {
         id: userSaved._id,
       });
   
-      res.cookie("token", token, {
-        httpOnly: process.env.NODE_ENV !== "development",
-        secure: true,
-        sameSite: "none",
-      });
+      res.cookie("token", token);
   
       res.json({
         id: userSaved._id,
@@ -68,11 +62,7 @@ export const registerUser = async (req, res) => {
         username: userFound.username,
       });
   
-      res.cookie("token", token, {
-        httpOnly: process.env.NODE_ENV !== "development",
-        secure: true,
-        sameSite: "none",
-      });
+      res.cookie("token", token);
   
       res.json({
         id: userFound._id,
@@ -86,13 +76,21 @@ export const registerUser = async (req, res) => {
 
   export const logoutUser = async (req, res) => {
     res.cookie("token", "", {
-      httpOnly: true,
-      secure: true,
       expires: new Date(0),
     });
     return res.sendStatus(200);
   };
 
-  export const profileUser = (req,res) => {
-    res.send('profile')
+  export const profileUser = async (req,res) => {
+    const userFound = await User.findById(req.user.id)
+
+    if (!userFound) return res.status(404).json({message: "User not found"})
+
+      return res.json({
+        id:userFound._id,
+        username:userFound.username,
+        email:userFound.email,
+        createdAt:userFound.createdAt,
+        updatedAt:userFound.updatedAt
+      })
   }
