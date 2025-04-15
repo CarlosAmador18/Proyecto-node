@@ -1,67 +1,94 @@
 import User from "../models/user.model.js"
 import bcrypt from "bcryptjs";
 import { createAccessToken } from "../libs/jwt.js";
+import jwt from "jsonwebtoken"
 
 export const registerUser = async (req, res) => {
-    const { username, email, password } = req.body;
     try {
-
-        const passwordHash = await bcrypt.hash(password, 10)
-
-        const newUser = new User({
-            username,
-            email,
-            password: passwordHash,
-        })
-
-        let mensaje = "User created succesfully"
-
-        const userSaved = await newUser.save();
-
-        const token = await createAccessToken({ id: userSaved._id })
-        res.cookie('token', token)
-        res.json({
-            id: newUser._id,
-            username: newUser.username,
-            email: newUser.email,
-            message: mensaje
-        })
-
+      const { username, email, password } = req.body;
+  
+      const userFound = await User.findOne({ email });
+  
+      if (userFound)
+        return res.status(400).json({
+          message: ["The email is already in use"],
+        });
+  
+      // hashing the password
+      const passwordHash = await bcrypt.hash(password, 10);
+  
+      // creating the user
+      const newUser = new User({
+        username,
+        email,
+        password: passwordHash,
+      });
+  
+      const userSaved = await newUser.save();
+  
+      const token = await createAccessToken({
+        id: userSaved._id,
+      });
+  
+      res.cookie("token", token, {
+        httpOnly: process.env.NODE_ENV !== "development",
+        secure: true,
+        sameSite: "none",
+      });
+  
+      res.json({
+        id: userSaved._id,
+        username: userSaved.username,
+        email: userSaved.email,
+      });
     } catch (error) {
-        console.log(error)
-        res.status(500).json({ success: false, message: error.message })
+      res.status(500).json({ message: error.message });
     }
-}
+  };
 
-export const loginUser = async (req, res) => {
-    const { email, password } = req.body
-
+  export const loginUser = async (req, res) => {
     try {
-
-        const userFound = await User.findOne({ email })
-        if (!userFound) return res.status(400).json({ message: 'User not found' })
-
-        const comparePassword = await bcrypt.compare(password, userFound.password)
-
-        if (!comparePassword) return res.status(400).json({ message: "Incorrect Password" })
-
-        const token = await createAccessToken({ id: userFound._id })
-        res.cookie("token", token)
-        res.json({
-            id: userFound._id,
-            username: userFound.username,
-            email: userFound.email,
-            message: "Login Succesfully"
-        })
-
+      const { email, password } = req.body;
+      const userFound = await User.findOne({ email });
+  
+      if (!userFound)
+        return res.status(400).json({
+          message: ["The email does not exist"],
+        });
+  
+      const isMatch = await bcrypt.compare(password, userFound.password);
+      if (!isMatch) {
+        return res.status(400).json({
+          message: ["The password is incorrect"],
+        });
+      }
+  
+      const token = await createAccessToken({
+        id: userFound._id,
+        username: userFound.username,
+      });
+  
+      res.cookie("token", token, {
+        httpOnly: process.env.NODE_ENV !== "development",
+        secure: true,
+        sameSite: "none",
+      });
+  
+      res.json({
+        id: userFound._id,
+        username: userFound.username,
+        email: userFound.email,
+      });
     } catch (error) {
-        res.status(500).json({message: error.message})
+      return res.status(500).json({ message: error.message });
     }
-}
+  };
 
-export const logoutUser = (res) => {
-    res.cookie('token', "", {
-        expires: new Date(0)
-    })
+  export const logoutUser = async (req, res) => {
+    res.cookie("token", "", {
+      httpOnly: true,
+      secure: true,
+      expires: new Date(0),
+    });
     return res.sendStatus(200);
-}
+  };
