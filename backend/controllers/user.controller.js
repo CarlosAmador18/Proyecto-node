@@ -92,3 +92,7 @@ export const registerUser = async (req, res) => {
     });
     return res.sendStatus(200);
   };
+
+  export const profileUser = (req,res) => {
+    res.send('profile')
+  }
